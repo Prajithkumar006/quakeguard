@@ -1,0 +1,77 @@
+message,intent
+the whole house is shaking!! what should i do,during_general
+omg the floor is moving,during_general
+is it ok to run out of the building while it shakes,during_general
+help help help,help_now
+i'm freaking out please tell me what to do,help_now
+i'm walking on the pavement and the earth started trembling,during_outdoors
+quake hit while i was driving to work,during_car
+woke up at 3am to the bed rocking,during_bed
+can i take the lift to get down after the tremor,during_elevator
+my grandma says stand in the door frame is that right,doorway
+my dad uses a wheelchair and the ground is shaking,during_mobility
+i'm in a skyscraper and it is swaying badly,during_highrise
+we are at a shopping centre and everyone is running,during_crowd
+students are in class and the building started shaking,during_school_work
+rocks are falling on the trail while i hike,during_mountains
+i was cooking when the shaking began,during_rooms
+the train i'm on is shaking,during_transit
+i'm 7 months pregnant and the quake started,during_pregnant_baby
+ok the shaking has finally stopped what now,after_general
+there's a gas smell in the flat,gas_leak
+will there be more tremors,aftershocks
+we live on the coast and the shaking lasted over a minute,tsunami
+i'm stuck under the roof and can't get out,trapped
+can i drink water from the tap now,water_safety
+no power since the quake,power_out
+is the milk in my fridge still ok after the outage,food_safety
+big cracks in the wall can we go back in,building_damage
+flames coming from next door,fire
+my brother is bleeding heavily,first_aid
+can't get through to my mom on the phone,contact_family
+do we need to leave the house,evacuate
+what should i keep in my emergency bag,emergency_kit
+how do we plan for a quake as a family,family_plan
+how do i stop my bookshelf falling over,home_safety
+i'm a tenant so can't drill what can i do,renting
+how do i teach my kids about earthquakes,kids_pets
+how should we practice for earthquakes,drills
+my elderly mother takes many medicines how do i prepare,elderly_disability_prep
+where should i keep my passport copies for emergencies,documents
+can an engineer check whether my flat would survive a big quake,building_check
+what's the difference between magnitude and intensity,magnitude_intensity
+how much more powerful is a 7 compared to a 6,richter
+is a 5.5 earthquake serious,how_strong
+how do phones know an earthquake started,early_warning
+can scientists say when the next big one will hit,prediction
+how many seconds will the warning give me,warning_time
+what is the difference between p and s waves,p_s_waves
+i felt a little tremor should i be worried about a bigger one,foreshock
+what makes the earth shake,why_quakes
+do cats know before an earthquake happens,quake_myths
+is my area prone to quakes,area_risk
+was there a quake a minute ago,live_quake_info
+i never got a warning on my phone,notifications_off
+how can i report that i felt the shaking,report_felt
+the app alerted me but nothing happened,false_alarm
+does this drain my battery a lot,battery
+are you storing my location,privacy_data
+where can i add my family contacts,contacts_app
+how reliable are the warnings,accuracy
+can i get alerts without internet,offline
+how do i contact support,cost_support
+can you speak tamil,languages
+good afternoon,greeting
+how's it going,how_are_you
+thank you very much,thanks
+see ya,goodbye
+are you a real person,who_are_you
+what do you help with,capabilities
+alright,ack
+you're awesome,compliment
+that answer was useless,frustration
+i'm terrified another earthquake will come tonight,scared_anxious
+what's the best way to cook pasta,unknown
+who is the president of the usa,unknown
+write python code to sort a list,unknown
+what's the score of the cricket match,unknown
