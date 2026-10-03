@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuakeGuard | Earthquake Monitoring & Emergency Response Platform</title>
+  <meta name="description" content="Real-time global seismic monitoring, risk calculation, emergency SOS dispatch, and disaster response platform.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Preconnect to map tile hosts so the first batch of tiles doesn't pay
+       a fresh DNS/TLS handshake on top of the request itself. -->
+  <link rel="preconnect" href="https://services.arcgisonline.com">
+  <link rel="preconnect" href="https://maps.wikimedia.org">
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://tiles.openfreemap.org">
+  <link rel="preconnect" href="https://s3.amazonaws.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+Tamil:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- MapLibre GL v5.24.0 Globe CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  
+  <!-- QuakeGuard Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+  <div id="app-container">
+
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="nav-brand" onclick="appRouter.navigate('dashboard')">
+        <img src="assets/logo.jpg" alt="QuakeGuard Logo" id="nav-logo">
+        <div>
+          Quake<span class="highlight">Guard</span>
+          <span class="badge badge-info" style="font-size: 0.65rem; margin-left: 5px;" data-i18n="versionBadge">v2.4 Live</span>
+        </div>
+      </div>
+
+      <ul class="nav-links">
+        <li class="nav-item active" data-page="dashboard" onclick="appRouter.navigate('dashboard')">
+          <i class="fa-solid fa-gauge-high"></i> <span data-i18n="dashboard">Home</span>
+        </li>
+        <li class="nav-item" data-page="map" onclick="appRouter.navigate('map')">
+          <i class="fa-solid fa-map-location-dot"></i> <span data-i18n="liveMap">Live Map</span>
+        </li>
+        <li class="nav-item" data-page="mesh" onclick="appRouter.navigate('mesh')">
+          <i class="fa-solid fa-tower-cell"></i> <span data-i18n="meshNet">Offline Chat</span>
+        </li>
+        <li class="nav-item" data-page="database" onclick="appRouter.navigate('database')">
+          <i class="fa-solid fa-database"></i> <span data-i18n="databaseCatalog">Records</span>
+        </li>
+        <li class="nav-item" data-page="ai-prediction" onclick="appRouter.navigate('ai-prediction')">
+          <i class="fa-solid fa-calculator"></i> <span data-i18n="aiPredictor">Risk Checker</span>
+        </li>
+        <li class="nav-item" data-page="ai-damage" onclick="appRouter.navigate('ai-damage')">
+          <i class="fa-solid fa-building-circle-exclamation"></i> <span data-i18n="damageAi">Check Damage</span>
+        </li>
+        <li class="nav-item" data-page="preparedness" onclick="appRouter.navigate('preparedness')">
+          <i class="fa-solid fa-shield-halved"></i> <span data-i18n="safetyGuide">Safety Guide</span>
+        </li>
+        <li class="nav-item" data-page="community" onclick="appRouter.navigate('community')">
+          <i class="fa-solid fa-users-viewfinder"></i> <span data-i18n="incidentReports">Reports</span>
+        </li>
+        <li class="nav-item" data-page="volunteers" onclick="appRouter.navigate('volunteers')">
+          <i class="fa-solid fa-hand-holding-hand"></i> <span data-i18n="rescueVolunteers">Volunteers</span>
+        </li>
+        <li class="nav-item" data-page="admin" onclick="appRouter.navigate('admin')">
+          <i class="fa-solid fa-user-shield"></i> <span data-i18n="adminCommand">Control Center</span>
+        </li>
+      </ul>
+
+      <div class="nav-actions">
+        <!-- Quick Emergency SOS Button -->
+        <button class="sos-quick-btn" onclick="sosManager.triggerSOSModal()">
+          <i class="fa-solid fa-truck-medical"></i> <span data-i18n="sosEmergency">EMERGENCY SOS</span>
+        </button>
+
+        <!-- Multi-Language Switcher (English, Tamil, Hindi) -->
+        <select class="form-control" id="lang-select" onchange="multiLang.setLanguage(this.value)" style="width: auto; padding: 0.4rem 0.6rem; font-size: 0.85rem; font-weight: 700;">
+          <option value="en">🌐 English</option>
+          <option value="ta">🌐 தமிழ் (Tamil)</option>
+          <option value="hi">🌐 हिंदी (Hindi)</option>
+        </select>
+
+        <!-- Offline / Connection Status -->
+        <span id="connection-status-badge" style="font-size: 0.8rem; font-weight: 700; padding: 0.3rem 0.6rem; white-space: nowrap;"></span>
+
+        <!-- Accessibility Toolbar Toggle Button -->
+        <button class="btn-icon" id="nav-a11y-btn" onclick="a11yAssistiveEngine.toggleAccessibilityToolbar()" data-i18n-title="a11yBtnTitle">
+          <i class="fa-solid fa-universal-access"></i>
+        </button>
+
+        <!-- Dark/Light Theme Toggle -->
+        <button class="btn-icon" id="theme-toggle-btn" onclick="appRouter.toggleTheme()" data-i18n-title="themeBtnTitle">
+          <i class="fa-solid fa-moon" id="theme-icon"></i>
+        </button>
+
+        <!-- User Profile Avatar -->
+        <button class="btn-icon" onclick="appRouter.navigate('profile')" data-i18n-title="userProfileTitle">
+          <i class="fa-solid fa-circle-user"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- OPTIONAL ACCESSIBILITY (A11Y) TOOLBAR FOR DISABLED PERSONS -->
+    <div id="a11y-bar" style="display: none; background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid var(--border-color); padding: 0.6rem 1.5rem; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem;" role="region" aria-label="Accessibility Assistance Controls">
+      <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: var(--color-teal-400);">
+        <i class="fa-solid fa-universal-access"></i>
+        <span data-i18n="a11ySuiteTitle">Accessibility Tools</span>
+      </div>
+      
+      <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <!-- Voice Reader Narration ON/OFF -->
+        <button class="btn btn-outline" id="a11y-btn-reader" style="padding: 0.3rem 0.7rem; font-size: 0.78rem;" onclick="a11yAssistiveEngine.toggleScreenReader()" title="Voice Reader (ON/OFF): when ON, click or tap any text to hear it, select text to hear just that part, press Esc to stop" aria-pressed="false">
+          <i class="fa-solid fa-volume-high"></i> <span data-i18n="voiceReaderBtn">Voice Reader</span>
+        </button>
+      </div>
+    </div>
+    
+    <!-- ARIA Live Announcer Region for Screen Readers -->
+    <div id="a11y-live-announcer" class="sr-announcer" aria-live="assertive" aria-atomic="true"></div>
+
+    <!-- Main Viewport Content Container -->
+    <main class="main-content">
+
+      <!-- P-WAVE EARLY WARNING COUNTDOWN ALERT BOX -->
+      <div id="pwave-alert-box" style="display: none; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 16px; padding: 1.5rem; color: white; text-align: center; margin-bottom: 1.75rem; box-shadow: 0 0 40px rgba(239,68,68,0.7); animation: pulse-glow-red 1s infinite;">
+        <h2 style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;"><i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="pwaveHeading">EARTHQUAKE DETECTED!</span></h2>
+        <p style="font-size: 1.1rem; margin-bottom: 1rem;" data-i18n="pwaveSub">Strong Shaking Arrives In:</p>
+        <div id="pwave-countdown-display" style="font-size: 4rem; font-weight: 900; font-family: var(--font-mono); margin-bottom: 1rem;">18s</div>
+        <div style="font-size: 1.2rem; font-weight: 800; background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: 12px; display: inline-block;" data-i18n="pwaveAction">DROP, COVER, AND HOLD ON UNDER A STURDY DESK IMMEDIATELY!</div>
+      </div>
+
+      <!-- PAGE 1: SPLASH SCREEN -->
+      <div id="page-splash" class="page-view">
+        <div class="glass-card" style="max-width: 600px; margin: 4rem auto; text-align: center;">
+          <img src="assets/logo.jpg" alt="Logo" style="width: 110px; height: 110px; border-radius: 24px; margin-bottom: 1.5rem; box-shadow: 0 0 30px rgba(249, 115, 22, 0.6);">
+          <h1 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem;">Quake<span class="highlight">Guard</span></h1>
+          <p style="color: var(--text-secondary); margin-bottom: 2rem;" data-i18n="splashSub">Earthquake alerts, risk checks, and emergency help — all in one place.</p>
+          <div style="display: flex; gap: 1rem; justify-content: center;">
+            <button class="btn btn-primary" onclick="appRouter.navigate('dashboard')"><span data-i18n="launchDashBtn">Get Started</span> <i class="fa-solid fa-rocket"></i></button>
+            <button class="btn btn-danger" onclick="sosManager.triggerSOSModal()"><span data-i18n="immediateSosBtn">Immediate SOS</span> <i class="fa-solid fa-triangle-exclamation"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 2: AUTHENTICATION (LOGIN & REGISTER) -->
+      <div id="page-auth" class="page-view">
+        <div class="glass-card" style="max-width: 480px; margin: 2rem auto;">
+          <h2 id="auth-title" style="font-weight: 700; margin-bottom: 1.5rem; text-align: center;" data-i18n="authTitle">Sign In to QuakeGuard</h2>
+          <form id="auth-form" onsubmit="appRouter.handleAuth(event)">
+            <div class="form-group">
+              <label data-i18n="emailLabel">Email Address</label>
+              <input type="email" class="form-control" placeholder="user@quakeguard.org" required value="user0@quakeguard.org">
+            </div>
+            <div class="form-group">
+              <label data-i18n="passwordLabel">Password</label>
+              <input type="password" class="form-control" placeholder="••••••••" required value="securepass123">
+            </div>
+            <div class="form-group">
+              <label data-i18n="roleLabel">I am a...</label>
+              <select class="form-control" id="auth-role">
+                <option value="user" data-i18n="roleCivilian">Regular User</option>
+                <option value="volunteer" data-i18n="roleVolunteer">Volunteer / Medic</option>
+                <option value="admin" data-i18n="roleAdmin">Admin</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;"><span data-i18n="signInBtn">Sign In</span> <i class="fa-solid fa-right-to-bracket"></i></button>
+            <button type="button" class="btn btn-outline" style="width: 100%; margin-top: 0.75rem;" onclick="alert('Google Authentication Successful!')">
+              <i class="fa-brands fa-google"></i> <span data-i18n="googleSignInBtn">Sign In with Google</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- PAGE 3: HOME DASHBOARD -->
+      <div id="page-dashboard" class="page-view active">
+        <div class="grid-dashboard">
+          <!-- Left Main Area -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Quick Status Cards -->
+            <div class="grid-3">
+              <div class="glass-card" style="border-left: 4px solid var(--color-blue-500);">
+                <div style="color: var(--text-muted); font-size: 0.85rem;" data-i18n="globalEventsToday">Earthquakes Today</div>
+                <div style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0;" id="stat-quake-count">42 Events</div>
+                <span class="badge badge-info"><i class="fa-solid fa-globe"></i> USGS Live Feed</span>
+              </div>
+              <div class="glass-card" style="border-left: 4px solid var(--color-orange-500);">
+                <div style="color: var(--text-muted); font-size: 0.85rem;" data-i18n="maxMag24h">Strongest Quake (24h)</div>
+                <div style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--color-orange-400);" id="stat-max-mag">M 6.4</div>
+                <span class="badge badge-warning"><i class="fa-solid fa-triangle-exclamation"></i> Moderate Severity</span>
+              </div>
+              <div class="glass-card" style="border-left: 4px solid var(--color-teal-500);">
+                <div style="color: var(--text-muted); font-size: 0.85rem;" data-i18n="userRiskLevel">Your Area's Risk</div>
+                <div style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--color-teal-400);" id="stat-user-risk">LOW (18%)</div>
+                <span class="badge badge-success"><i class="fa-solid fa-shield-check"></i> Safe Zone</span>
+              </div>
+            </div>
+
+            <!-- Quick Live Sensors & Command Hub Entry Card -->
+            <div class="glass-card" style="border-left: 4px solid var(--color-teal-500); background: linear-gradient(135deg, rgba(20, 184, 166, 0.12), rgba(15, 23, 42, 0.75)); padding: 1.1rem 1.25rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                  <h3 style="font-weight: 800; color: var(--color-teal-400); margin-bottom: 0.25rem; font-size: 1.1rem;">
+                    <i class="fa-solid fa-microchip"></i> <span data-i18n="sensorsCommandEntryTitle">Rescue Sensors & Controls</span>
+                    <span class="badge badge-warning" style="font-size: 0.62rem; vertical-align: middle; margin-left: 0.4rem;" data-i18n="simSensorBadge">DEMO</span>
+                  </h3>
+                  <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;" data-i18n="sensorsCommandEntryDesc">Check vibration sensors, heartbeat radar, and heat scanners, and control rescue actions with one click.</p>
+                </div>
+                <button class="btn btn-primary" style="padding: 0.55rem 1.1rem; font-weight: 700; font-size: 0.9rem;" onclick="appRouter.navigate('admin')">
+                  <span data-i18n="openCommandHubBtn">Open Control Center</span> <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Mini Live Interactive Map -->
+            <div class="glass-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="font-weight: 700;"><i class="fa-solid fa-earth-americas" style="color: var(--color-blue-400);"></i> <span data-i18n="realTimeSeismic">Recent Earthquake Activity</span></h3>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button class="btn btn-outline" id="dash-offlinemap-btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="liveMap.toggleOfflineMap('dashboard')" title="Switch between the live tile map and the built-in offline map">
+                    <i class="fa-solid fa-plane-slash"></i> <span>Offline Map</span>
+                  </button>
+                  <button class="btn btn-outline" id="dash-offline-btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="offlineMaps.downloadAreaForOffline('dashboard')" title="Download the currently visible map area for offline use">
+                    <i class="fa-solid fa-download"></i> <span>Save This Area Offline</span>
+                  </button>
+                  <button class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="appRouter.navigate('map')"><span data-i18n="expandMapBtn">Expand Map</span> <i class="fa-solid fa-expand"></i></button>
+                </div>
+              </div>
+              <div id="dash-map-container" style="height: 340px; border-radius: 12px; border: 1px solid var(--border-color);"></div>
+            </div>
+
+            <!-- Family Emergency Safety Circle -->
+            <div class="glass-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="font-weight: 700;"><i class="fa-solid fa-users" style="color: var(--color-teal-400);"></i> <span data-i18n="familySafetyTitle">Family Safety Circle</span></h3>
+                <button class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="familyCircle.markSelfSafe()">
+                  <i class="fa-solid fa-circle-check"></i> <span data-i18n="markSelfSafeBtn">Mark Myself Safe</span>
+                </button>
+              </div>
+              <div id="family-members-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+
+            <!-- Recent Earthquakes Feed -->
+            <div class="glass-card">
+              <h3 style="font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-list-ol"></i> <span data-i18n="recentQuakes">Recent Earthquakes</span></h3>
+              <div id="recent-quake-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <!-- Dynamically Populated -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Sidebar Area -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Quick SOS Panel -->
+            <div class="glass-card" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(15, 23, 42, 0.7)); border-color: rgba(239, 68, 68, 0.3);">
+              <h3 style="color: var(--color-red-400); font-weight: 800; margin-bottom: 0.5rem;"><i class="fa-solid fa-siren-on"></i> <span data-i18n="sosPanelTitle">Emergency SOS</span></h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;" data-i18n="sosPanelDesc">Press to call for help or send an SOS text with your live location.</p>
+              <button class="btn btn-danger" style="width: 100%; padding: 1rem; font-size: 1.1rem;" onclick="sosManager.triggerSOSModal()">
+                <span data-i18n="triggerSosNow">TRIGGER SOS NOW</span> <i class="fa-solid fa-bolt"></i>
+              </button>
+
+              <!-- Emergency Contacts — set these up ahead of time so SOS SMS has somewhere to go -->
+              <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(239, 68, 68, 0.25);">
+                <button class="btn btn-outline" style="width: 100%; font-size: 0.82rem; padding: 0.5rem;" onclick="const p=document.getElementById('sos-contacts-panel'); const open = p.style.display!=='none'; p.style.display = open ? 'none' : 'block'; if(!open) sosManager.renderContactsList();">
+                  <i class="fa-solid fa-address-book"></i> <span data-i18n="manageEmergContactsBtn">Manage Emergency Contacts</span>
+                </button>
+                <div id="sos-contacts-panel" style="display: none; margin-top: 0.75rem;">
+                  <div id="sos-contacts-list"></div>
+                  <div style="display: flex; gap: 0.4rem; margin-top: 0.5rem;">
+                    <input type="text" id="sos-contact-name" class="form-control" placeholder="Name (optional)" style="font-size: 0.8rem; padding: 0.4rem 0.6rem;">
+                    <input type="tel" id="sos-contact-phone" class="form-control" placeholder="+91 98765 43210" style="font-size: 0.8rem; padding: 0.4rem 0.6rem;">
+                  </div>
+                  <button class="btn btn-primary" style="width: 100%; font-size: 0.8rem; padding: 0.45rem; margin-top: 0.5rem;" onclick="sosManager.addContactFromForm()">
+                    <i class="fa-solid fa-plus"></i> Add Contact
+                  </button>
+                  <p style="font-size: 0.7rem; color: var(--text-muted); margin: 0.5rem 0 0;">Saved only on this device. Used by "Send SOS via SMS" to pre-fill who your emergency text goes to.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Off-Grid P2P Mesh Quick Access -->
+            <div class="glass-card" style="border-left: 4px solid var(--color-blue-500);">
+              <h3 style="font-weight: 700; margin-bottom: 0.5rem;"><i class="fa-solid fa-tower-cell" style="color: var(--color-blue-400);"></i> <span data-i18n="p2pMeshTitle">Offline Messaging</span></h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;" data-i18n="p2pMeshDesc">Send messages to nearby people even without internet or phone signal.</p>
+              <button class="btn btn-primary" style="width: 100%;" onclick="appRouter.navigate('mesh')">
+                <span data-i18n="openMeshBtn">Open Offline Chat</span> <i class="fa-solid fa-satellite-dish"></i>
+              </button>
+            </div>
+
+            <!-- Community Mutual Aid Supply Sharing Board -->
+            <div class="glass-card">
+              <h3 style="font-weight: 700; margin-bottom: 0.75rem;"><i class="fa-solid fa-hand-holding-heart" style="color: var(--color-orange-400);"></i> <span data-i18n="mutualAidTitle">Community Help Board</span></h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;" data-i18n="mutualAidDesc">Share or ask for supplies like water, power, or medical items with your neighbors.</p>
+              <div id="mutual-aid-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+
+            <!-- Risk Calculator Quick Access -->
+            <div class="glass-card">
+              <h3 style="font-weight: 700; margin-bottom: 0.75rem;"><i class="fa-solid fa-calculator" style="color: var(--color-teal-400);"></i> <span data-i18n="aiRiskTitle">Earthquake Risk Estimate</span></h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;" data-i18n="aiRiskDesc">Estimate how strong the shaking could be, based on your location and ground type.</p>
+              <button class="btn btn-primary" style="width: 100%;" onclick="appRouter.navigate('ai-prediction')"><span data-i18n="runRiskModel">Check My Risk</span> <i class="fa-solid fa-calculator"></i></button>
+            </div>
+
+            <!-- Structural Damage Assessment -->
+            <div class="glass-card">
+              <h3 style="font-weight: 700; margin-bottom: 0.75rem;"><i class="fa-solid fa-camera-retro" style="color: var(--color-orange-400);"></i> <span data-i18n="aiDamageTitle">Check Building Damage</span></h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;" data-i18n="aiDamageDesc">Upload a photo of a building to get an estimate of how damaged it is.</p>
+              <button class="btn btn-warning" style="width: 100%;" onclick="appRouter.navigate('ai-damage')"><span data-i18n="scanPhotoBtn">Check Photo</span> <i class="fa-solid fa-upload"></i></button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 4: LIVE MAP & MULTI-DATABASE LAYERS -->
+      <div id="page-map" class="page-view">
+        <div class="glass-card" style="margin-bottom: 1.5rem;">
+          <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;">
+            <div>
+              <h2 style="font-weight: 800;"><i class="fa-solid fa-map-location-dot" style="color: var(--color-blue-400);"></i> <span data-i18n="mapHeaderTitle">Live Earthquake & Emergency Map</span></h2>
+              <p style="color: var(--text-secondary); font-size: 0.9rem;" data-i18n="mapHeaderSub">See live earthquakes, fault lines, shelters, hospitals, police, and fire stations near you.</p>
+            </div>
+            
+            <!-- Map API & Database Layer Controls -->
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <!-- Keyless Map Layer Style Selector (MapLibre, OpenStreetMap, Mapcn) -->
+              <select class="form-control" id="map-style-selector" onchange="liveMap.changeMapStyle(this.value)" style="width: 215px; font-weight: 700;">
+                <option value="carto-dark" selected data-i18n="mapStyleDark">🌙 Dark Map</option>
+                <option value="openstreetmap" data-i18n="mapStyleOsm">🗺️ Standard Map</option>
+                <option value="mapcn-light" data-i18n="mapStyleLight">☀️ Light Map</option>
+                <option value="opentopo" data-i18n="mapStyleTopo">🏔️ Terrain Map</option>
+                <option value="carto-voyager" data-i18n="mapStyleVoyager">🛰️ Street Map</option>
+              </select>
+
+              <select class="form-control" id="map-db-provider" onchange="liveMap.setDataSource(this.value)" style="width: 170px;">
+                <option value="usgs-live" data-i18n="mapProviderUsgs">📡 Live Earthquakes (USGS)</option>
+                <option value="emsc-live" data-i18n="mapProviderEmsc">🌐 Europe Earthquakes (EMSC)</option>
+                <option value="historical" data-i18n="mapProviderHist">📜 Past Earthquakes</option>
+              </select>
+
+              <select class="form-control" id="map-filter-mag" onchange="liveMap.filterEarthquakes()" style="width: 140px;">
+                <option value="0" data-i18n="magFilterAll">All Magnitudes</option>
+                <option value="4.5" selected data-i18n="magFilterMod">Moderate (4.5+)</option>
+                <option value="6.0" data-i18n="magFilterMaj">Major (6.0+)</option>
+                <option value="7.5" data-i18n="magFilterCat">Catastrophic (7.5+)</option>
+              </select>
+
+              <!-- Infrastructure Layer Toggles -->
+              <button class="btn btn-outline" onclick="liveMap.toggleShelters()" title="Toggle Emergency Shelters">
+                <i class="fa-solid fa-house-medical" style="color: var(--color-blue-400);"></i> <span data-i18n="shelterToggleBtn">Shelters</span>
+              </button>
+              <button class="btn btn-outline" onclick="liveMap.toggleHospitals()" title="Toggle Hospitals">
+                <i class="fa-solid fa-hospital" style="color: var(--color-red-400);"></i> <span data-i18n="hospitalToggleBtn">Hospitals</span>
+              </button>
+              <button class="btn btn-outline" onclick="liveMap.togglePolice()" title="Toggle Police & SAR">
+                <i class="fa-solid fa-shield-halved" style="color: #3b82f6;"></i> <span data-i18n="policeToggleBtn">Police</span>
+              </button>
+              <button class="btn btn-outline" onclick="liveMap.toggleFire()" title="Toggle Fire Rescue">
+                <i class="fa-solid fa-fire-extinguisher" style="color: var(--color-orange-400);"></i> <span data-i18n="fireToggleBtn">Fire</span>
+              </button>
+              <button class="btn btn-outline" onclick="liveMap.toggleFaultLines()" title="Toggle Geological Fault Lines">
+                <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> <span data-i18n="faultsToggleBtn">Faults</span>
+              </button>
+              <button class="btn btn-outline" onclick="liveMap.flyToCoimbatore()" title="Fly to Coimbatore Epicenter Zone">
+                <i class="fa-solid fa-location-crosshairs" style="color: var(--color-teal-400);"></i> <span>Coimbatore</span>
+              </button>
+              <button class="btn btn-primary" onclick="liveMap.flyToWorldMap()" title="Zoom out to Full World Map">
+                <i class="fa-solid fa-earth-americas"></i> <span data-i18n="fullWorldViewBtn">🌐 Full World Map</span>
+              </button>
+              <button class="btn btn-outline" id="evac-route-btn" onclick="liveMap.showEvacuationRoute()" title="Uses your device's GPS location to route you to the nearest shelter, hospital, police and fire station">
+                <i class="fa-solid fa-route"></i> <span data-i18n="evacRouteBtn">Evacuation Route</span>
+              </button>
+              <button class="btn btn-outline" id="full-offlinemap-btn" onclick="liveMap.toggleOfflineMap('full')" title="Switch between the live tile map and the built-in offline map (works with no internet)">
+                <i class="fa-solid fa-plane-slash"></i> <span>Offline Map</span>
+              </button>
+              <button class="btn btn-outline" id="full-pack-btn" onclick="offlineMaps.prepareOfflinePack(this)" title="While online: save country borders, the latest quake feed and your position so the offline map, globe and assistant are complete without internet">
+                <i class="fa-solid fa-box-archive"></i> <span>Prepare Offline Pack</span>
+              </button>
+              <button class="btn btn-outline" id="full-offline-btn" onclick="offlineMaps.downloadAreaForOffline('full')" title="Download the currently visible map area for offline use">
+                <i class="fa-solid fa-download"></i> <span>Save This Area Offline</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="full-map-container" style="height: 620px; border-radius: 16px; border: 1px solid var(--border-color);"></div>
+
+        <!-- 3D INTERACTIVE EARTH GLOBE SECTION (MapLibre GL v5.24.0) -->
+        <div class="glass-card" style="margin-top: 1.5rem; border-left: 4px solid var(--color-blue-500);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+            <div>
+              <h3 style="font-weight: 800; margin: 0; color: var(--color-blue-400);">
+                <i class="fa-solid fa-globe" style="color: var(--color-blue-400);"></i> <span data-i18n="globeTitle">3D Earth Globe</span>
+              </h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;" data-i18n="globeSub">Spin the globe, see earthquake locations, and turn on 3D buildings and terrain by zooming in close.</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+              <select class="form-control" style="width: auto; padding: 0.3rem 0.5rem; font-size: 0.78rem; font-weight: 700;" onchange="mapLibreGlobe.changeProjectionStyle(this.value)">
+                <option value="globe">🌐 MapLibre 3D Globe</option>
+                <option value="satellite">🛰️ Satellite Globe</option>
+                <option value="vector-2d">🗺️ MapLibre 2D Vector</option>
+                <option value="osm-raster">🛰️ OpenStreetMap Raster</option>
+              </select>
+              <button class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;" onclick="mapLibreGlobe.flyToLocation(76.9558, 11.0168, 10, 'Coimbatore Seismic Zone')">
+                <span data-i18n="flyCoimbatoreBtn">📍 Coimbatore / TN</span>
+              </button>
+              <button class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;" onclick="mapLibreGlobe.flyToLocation(80.2707, 13.0827, 5, 'Tamil Nadu & South India')">
+                <span data-i18n="flyIndiaBtn">📍 Tamil Nadu / India</span>
+              </button>
+              <button class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;" onclick="mapLibreGlobe.flyToLocation(139.691, 35.689, 5, 'Tokyo & East Japan Megathrust')">
+                <span data-i18n="flyJapanBtn">📍 Tokyo / Japan</span>
+              </button>
+              <button class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;" onclick="mapLibreGlobe.flyToLocation(-122.4194, 37.7749, 5.5, 'San Andreas Fault Zone')">
+                <span data-i18n="flyUsaBtn">📍 San Francisco / USA</span>
+              </button>
+              <button class="btn btn-primary" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;" onclick="mapLibreGlobe.flyToWorldView()">
+                <span data-i18n="resetGlobeBtn">🌐 Reset View</span>
+              </button>
+              <button class="btn btn-outline" id="globe-spin-toggle-btn" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;" onclick="mapLibreGlobe.toggleSpin()">
+                <i class="fa-solid fa-pause"></i> <span>Pause Rotation</span>
+              </button>
+              <button class="btn btn-outline" id="globe-offline-toggle-btn" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;" onclick="mapLibreGlobe.toggleOfflineMode()" title="Switch between the live 3D globe and the built-in offline globe (works with no internet)">
+                <i class="fa-solid fa-plane-slash"></i> <span>Offline Globe</span>
+              </button>
+              <button class="btn btn-outline" id="globe-3d-toggle-btn" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;" onclick="mapLibreGlobe.toggle3D()">
+                <i class="fa-solid fa-cube"></i> <span>Normal View</span>
+              </button>
+            </div>
+          </div>
+          
+          <div id="maplibre-globe-container" style="height: 440px; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); background: #020617;"></div>
+        </div>
+      </div>
+
+      <!-- PAGE 5: OFF-GRID P2P MESH COMMUNICATION CENTER -->
+      <div id="page-mesh" class="page-view">
+        <div class="glass-card" style="margin-bottom: 1.5rem;">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+            <div>
+              <h2 style="font-weight: 800;"><i class="fa-solid fa-tower-cell" style="color: var(--color-blue-400);"></i> <span data-i18n="meshHeading">Offline Messaging Center</span></h2>
+              <p style="color: var(--text-secondary); font-size: 0.9rem;" data-i18n="meshSub">Send messages and alerts to nearby devices, even without internet or phone signal.</p>
+              <p id="mesh-net-state" class="mesh-netstate"></p>
+            </div>
+            <span class="badge badge-warning mesh-status" id="mesh-peer-count"><span class="mesh-dot"></span> Searching for nearby devices...</span>
+          </div>
+        </div>
+
+        <div class="glass-card" style="margin-bottom: 1.5rem;">
+          <h3 style="font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-paper-plane"></i> <span data-i18n="broadcastMsgTitle">Send a Message</span></h3>
+          <div id="mesh-composer-extra"></div>
+          <div class="mesh-compose-row">
+            <input type="text" class="form-control" id="mesh-msg-input" maxlength="280" autocomplete="off" placeholder="Type your message or location to send to nearby devices..." data-i18n-placeholder="broadcastMsgPlaceholder" oninput="meshNetwork.updateCounter()" onkeydown="if(event.key==='Enter') meshNetwork.sendMeshMessage()">
+            <button class="btn btn-primary mesh-send-btn" onclick="meshNetwork.sendMeshMessage()"><i class="fa-solid fa-paper-plane"></i> <span data-i18n="relayBroadcastBtn">Send</span></button>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; gap:1rem;">
+            <h3 style="font-weight: 700;"><i class="fa-solid fa-rss"></i> <span data-i18n="meshFeedTitle">Recent Messages</span></h3>
+            <button class="btn mesh-clear" onclick="meshNetwork.clearMessages()"><i class="fa-solid fa-trash-can"></i> Clear</button>
+          </div>
+          <div id="mesh-feed-container" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <!-- PAGE 6: DATABASE CATALOG EXPLORER -->
+      <div id="page-database" class="page-view">
+        <div class="glass-card" style="margin-bottom: 1.5rem;">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+            <div>
+              <h2 style="font-weight: 800;"><i class="fa-solid fa-database" style="color: var(--color-blue-400);"></i> <span data-i18n="databaseCatalog">Records</span></h2>
+              <p style="color: var(--text-secondary); font-size: 0.9rem;" data-i18n="dbSub">Browse and search earthquake data, past events, and emergency facility locations.</p>
+            </div>
+            
+            <div style="display: flex; gap: 0.75rem;">
+              <span class="badge badge-info" id="db-record-count" style="font-size: 0.9rem; padding: 0.5rem 1rem;" data-i18n="dbRecordsCount">7 Records</span>
+              <button class="btn btn-outline" onclick="databaseExplorer.exportJSON()"><i class="fa-solid fa-file-export"></i> <span data-i18n="exportJsonBtn">Export JSON</span></button>
+            </div>
+          </div>
+
+          <!-- Category Selection Buttons -->
+          <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem; flex-wrap: wrap;">
+            <button class="btn btn-outline" onclick="databaseExplorer.selectCategory('historical')"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="catHistorical">Past Earthquakes</span></button>
+            <button class="btn btn-outline" onclick="databaseExplorer.selectCategory('shelters')"><i class="fa-solid fa-house-medical"></i> <span data-i18n="catShelters">Shelters</span></button>
+            <button class="btn btn-outline" onclick="databaseExplorer.selectCategory('hospitals')"><i class="fa-solid fa-hospital"></i> <span data-i18n="catHospitals">Hospitals</span></button>
+            <button class="btn btn-outline" onclick="databaseExplorer.selectCategory('faults')"><i class="fa-solid fa-bolt"></i> <span data-i18n="catFaults">Fault Lines</span></button>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="glass-card" style="margin-bottom: 1.5rem; padding: 1rem;">
+          <div style="display: flex; gap: 0.75rem;">
+            <input type="text" class="form-control" id="db-search-input" placeholder="Search database records by location, year, magnitude, or facility name..." data-i18n-placeholder="dbSearchPlaceholder" onkeyup="databaseExplorer.renderCategory(databaseExplorer.currentCategory)">
+            <button class="btn btn-primary"><i class="fa-solid fa-magnifying-glass"></i> <span data-i18n="searchBtn">Search</span></button>
+          </div>
+        </div>
+
+        <!-- Data Table Container -->
+        <div class="glass-card" style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+            <thead id="db-table-head" style="border-bottom: 2px solid var(--border-color); color: var(--text-secondary);">
+              <!-- Rendered via JS -->
+            </thead>
+            <tbody id="db-table-body">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PAGE 7: SEISMIC RISK PREDICTION -->
+      <div id="page-ai-prediction" class="page-view">
+        <div class="grid-2">
+          <!-- Input Parameters -->
+          <div class="glass-card">
+            <h2 style="font-weight: 800; margin-bottom: 1rem;"><i class="fa-solid fa-calculator" style="color: var(--color-teal-400);"></i> <span data-i18n="aiCalcHeading">Earthquake Risk Calculator</span></h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;" data-i18n="aiCalcDesc">Enter your location and ground details to estimate how risky an earthquake could be there.</p>
+            
+            <div class="form-group">
+              <label data-i18n="latLngLabel">Location (Latitude / Longitude)</label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <input type="number" step="0.0001" class="form-control" id="ai-lat" value="37.7749">
+                <input type="number" step="0.0001" class="form-control" id="ai-lng" value="-122.4194">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label data-i18n="faultDistLabel">Distance to Fault Line (km)</label>
+              <input type="number" class="form-control" id="ai-fault-dist" value="14.2">
+            </div>
+
+            <div class="form-group">
+              <label data-i18n="depthLabel">Earthquake Depth (km)</label>
+              <input type="number" class="form-control" id="ai-depth" value="8.5">
+            </div>
+
+            <div class="form-group">
+              <label data-i18n="soilLabel">Ground Type</label>
+              <select class="form-control" id="ai-soil">
+                <option value="soft" data-i18n="soilOptionE">Soft Soil (Clay / Sandy)</option>
+                <option value="medium" selected data-i18n="soilOptionCD">Medium Soil (Sand / Gravel)</option>
+                <option value="rock" data-i18n="soilOptionAB">Solid Rock</option>
+              </select>
+            </div>
+
+            <div class="form-group advanced-only" id="admin-algorithm-selector-group" style="display: none;">
+              <label><i class="fa-solid fa-lock" style="color: var(--color-orange-400);"></i> Select Attenuation Model (Admin Only)</label>
+              <select class="form-control" id="ai-model-selector" style="font-weight: 700;">
+                <option value="boore-atkinson" selected>📍 Standard Estimate (Distance + Depth + Soil)</option>
+                <option value="regional-adjusted">🌋 Regional Fault-Zone Adjusted</option>
+                <option value="depth-weighted">⬇️ Depth-Weighted Estimate</option>
+                <option value="distance-decay">📡 Distance-Decay Estimate</option>
+                <option value="consensus">🗳️ Combined Estimate (Average of All Models)</option>
+              </select>
+              <p style="font-size: 0.72rem; color: var(--text-muted); margin: 0.4rem 0 0;">
+                <i class="fa-solid fa-circle-info"></i> These are physics-based attenuation estimates from your inputs (fault distance, focal depth, soil type) — not a trained machine-learning model.
+              </p>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%;" onclick="aiPredictor.runPrediction()">
+              <span data-i18n="execModelBtn">Check My Risk</span> <i class="fa-solid fa-play"></i>
+            </button>
+          </div>
+
+          <!-- Prediction Output -->
+          <div class="glass-card" style="display: flex; flex-direction: column; justify-content: center; text-align: center;">
+            <div id="ai-output-placeholder">
+              <i class="fa-solid fa-calculator" style="font-size: 3.5rem; color: var(--color-blue-400); margin-bottom: 1rem;"></i>
+              <h3 style="font-weight: 700;" data-i18n="readyPrediction">Ready When You Are</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem;" data-i18n="clickExecDesc">Click the button below to get your risk score.</p>
+            </div>
+
+            <div id="ai-output-results" style="display: none;">
+              <div style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase;">Estimated Risk Index</div>
+              <div id="res-score" style="font-size: 4rem; font-weight: 900; color: var(--color-orange-500); margin: 0.5rem 0;">76/100</div>
+              <div id="res-level" class="badge badge-warning" style="font-size: 1rem; padding: 0.5rem 1.25rem;">HIGH SEISMIC HAZARD</div>
+              
+              <div style="margin: 1.5rem 0; text-align: left; background: var(--bg-surface); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.85rem; font-weight: 700; color: var(--color-blue-400); margin-bottom: 0.25rem;">GEOLOGICAL SITE ASSESSMENT</div>
+                <div id="res-explanation" style="font-size: 0.9rem; color: var(--text-secondary);">High fault line proximity (14.2km) combined with shallow focal depth (8.5km) indicates elevated energy release probability.</div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.85rem;">
+                <div style="background: var(--bg-surface); padding: 0.75rem; border-radius: 8px;">Model Confidence: <strong id="res-conf">91.4%</strong></div>
+                <div style="background: var(--bg-surface); padding: 0.75rem; border-radius: 8px;">Action: <strong style="color: var(--color-orange-400);">Prepare Kit</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 8: BUILDING DAMAGE INSPECTOR -->
+      <div id="page-ai-damage" class="page-view">
+        <div class="glass-card" style="max-width: 800px; margin: 0 auto;">
+          <h2 style="font-weight: 800; margin-bottom: 0.5rem;"><i class="fa-solid fa-building-circle-exclamation" style="color: var(--color-orange-400);"></i> <span data-i18n="aiDamageHeading">Building Damage Check</span></h2>
+          <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;" data-i18n="aiDamageSub">Upload a photo of a damaged wall or building, and we'll estimate how serious the damage looks. Works in bright or dark light, and people in the frame are spotted and left out of the score.</p>
+
+          <div style="border: 2px dashed var(--color-blue-400); padding: 2.5rem; border-radius: 16px; text-align: center; background: var(--bg-surface); margin-bottom: 1.5rem; cursor: pointer;" onclick="document.getElementById('damage-file-input').click()">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 3rem; color: var(--color-blue-400); margin-bottom: 1rem;"></i>
+            <h4 style="font-weight: 700;" data-i18n="uploadBoxTitle">Select or Drop Photo Here</h4>
+            <p style="font-size: 0.85rem; color: var(--text-muted);" data-i18n="uploadBoxSub">Supports JPG, PNG, WEBP formats</p>
+            <input type="file" id="damage-file-input" accept="image/*" style="display: none;" onchange="aiDamageAssessor.handleImageUpload(event)">
+          </div>
+
+          <!-- Sample Image / Camera Capture Options -->
+          <div style="text-align: center; margin-bottom: 1.5rem; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="aiDamageAssessor.openCamera()">
+              <i class="fa-solid fa-camera"></i> <span data-i18n="takePhotoBtn">Take Photo</span>
+            </button>
+            <button class="btn btn-outline" onclick="aiDamageAssessor.loadSampleImage()">
+              <i class="fa-solid fa-image"></i> <span data-i18n="testSampleBtn">Try a Sample Photo</span>
+            </button>
+            <!-- Fallback used only if live camera preview (getUserMedia) is unavailable/denied —
+                 the capture="environment" attribute makes mobile browsers open the native camera app directly. -->
+            <input type="file" id="damage-camera-fallback-input" accept="image/*" capture="environment" style="display: none;" onchange="aiDamageAssessor.handleImageUpload(event)">
+          </div>
+
+          <!-- Live Camera Capture Modal -->
+          <div id="damage-camera-modal" style="display: none; position: fixed; inset: 0; background: rgba(2,6,23,0.92); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;">
+            <div style="background: var(--bg-surface); border-radius: 16px; padding: 1.25rem; max-width: 520px; width: 100%; text-align: center; border: 1px solid var(--border-color);">
+              <h3 style="font-weight: 800; margin-bottom: 0.75rem;"><i class="fa-solid fa-camera"></i> Take Damage Photo</h3>
+              <div class="dmg-cam-wrap">
+                <video id="damage-camera-video" autoplay playsinline muted></video>
+                <canvas id="damage-camera-overlay"></canvas>
+              </div>
+              <canvas id="damage-camera-canvas" style="display: none;"></canvas>
+              <div class="dmg-live-status" id="damage-live-chips"></div>
+              <div class="dmg-hint" id="damage-live-hint"></div>
+              <div id="damage-camera-error" style="display: none; color: var(--color-red-400); font-size: 0.85rem; margin-top: 0.75rem;"></div>
+              <div style="display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap;">
+                <button class="btn btn-primary" id="damage-camera-capture-btn" onclick="aiDamageAssessor.capturePhoto()">
+                  <i class="fa-solid fa-circle-dot"></i> Capture
+                </button>
+                <button class="btn btn-outline" id="damage-camera-torch-btn" style="display: none;" onclick="aiDamageAssessor.toggleTorch()">
+                  <i class="fa-solid fa-bolt"></i> Flash off
+                </button>
+                <button class="btn btn-outline" onclick="aiDamageAssessor.closeCamera()">
+                  <i class="fa-solid fa-xmark"></i> Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assessment Result Display -->
+          <div id="damage-assessment-result" style="display: none; background: var(--bg-surface); border-radius: 16px; padding: 1.5rem; border: 1px solid var(--border-color);">
+            <div id="damage-result-grid" style="display: grid; grid-template-columns: 220px 1fr; gap: 1.5rem; align-items: center;">
+              <img id="damage-preview-img" src="assets/building_damage.jpg" alt="Uploaded Damage Photo" style="width: 100%; border-radius: 12px; height: 180px; object-fit: contain; background: #000; border: 2px solid var(--color-orange-500);">
+              
+              <div>
+                <div id="damage-chips"></div>
+                <div class="badge badge-danger" id="damage-badge" style="font-size: 0.9rem; margin-bottom: 0.5rem;">MODERATE TO SEVERE DAMAGE DETECTED</div>
+                <h3 style="font-weight: 800; margin-bottom: 0.5rem;">Estimated Damage: <span style="color: var(--color-red-400);" id="damage-prob">68.5%</span></h3>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.75rem;" id="damage-desc">Major diagonal shear cracks identified along load-bearing masonry walls. Foundation integrity compromised.</p>
+                <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid var(--color-red-500); padding: 0.75rem; border-radius: 8px; font-weight: 700; color: var(--color-red-400);" id="damage-recommendation">
+                  <i class="fa-solid fa-triangle-exclamation"></i> RECOMMENDATION: UNSAFE FOR OCCUPANCY - EVACUATE IMMEDIATELY
+                </div>
+                <p id="damage-conf-note" style="display: none; font-size: 0.78rem; color: var(--color-orange-400); margin-top: 0.6rem; margin-bottom: 0;"></p>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.6rem; margin-bottom: 0;">
+                  <i class="fa-solid fa-circle-info"></i> Automated visual estimate from on-device image analysis (color, contrast &amp; edge patterns) —
+                  not a certified inspection. Always confirm with a qualified structural engineer before re-entry.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 9: DISASTER PREPAREDNESS -->
+      <div id="page-preparedness" class="page-view">
+        <div class="glass-card" style="margin-bottom: 1.5rem;">
+          <h2 style="font-weight: 800;"><i class="fa-solid fa-shield-halved" style="color: var(--color-blue-400);"></i> <span data-i18n="safetyHeading">Earthquake Safety Guide</span></h2>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">Life-saving protocols, step-by-step checklists, and offline emergency survival kits.</p>
+        </div>
+
+        <div class="grid-3">
+          <!-- Before Earthquake -->
+          <div class="glass-card">
+            <h3 style="color: var(--color-blue-400); font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="beforeTitle">BEFORE (Preparation)</span></h3>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem; color: var(--text-secondary);">
+              <li><i class="fa-solid fa-square-check" style="color: var(--color-success);"></i> <span data-i18n="beforeItem1">Secure heavy furniture and appliances to the wall so they can't fall.</span></li>
+              <li><i class="fa-solid fa-square-check" style="color: var(--color-success);"></i> <span data-i18n="beforeItem2">Establish an emergency family meeting spot and communication plan.</span></li>
+              <li><i class="fa-solid fa-square-check" style="color: var(--color-success);"></i> <span data-i18n="beforeItem3">Maintain a 72-hour emergency kit with water, food, flashlight, and first aid.</span></li>
+            </ul>
+          </div>
+
+          <!-- During Earthquake -->
+          <div class="glass-card">
+            <h3 style="color: var(--color-orange-400); font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-hand"></i> <span data-i18n="duringTitle">DURING (DROP, COVER, HOLD ON)</span></h3>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem; color: var(--text-secondary);">
+              <li><i class="fa-solid fa-person-falling" style="color: var(--color-orange-500);"></i> <span data-i18n="duringItem1">DROP down onto your hands and knees immediately.</span></li>
+              <li><i class="fa-solid fa-person-shelter" style="color: var(--color-orange-500);"></i> <span data-i18n="duringItem2">COVER your head and neck under a sturdy table or desk.</span></li>
+              <li><i class="fa-solid fa-hand-back-fist" style="color: var(--color-orange-500);"></i> <span data-i18n="duringItem3">HOLD ON to your shelter until all ground shaking ceases.</span></li>
+            </ul>
+          </div>
+
+          <!-- After Earthquake -->
+          <div class="glass-card">
+            <h3 style="color: var(--color-red-400); font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-kit-medical"></i> <span data-i18n="afterTitle">AFTER (Evacuation)</span></h3>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem; color: var(--text-secondary);">
+              <li><i class="fa-solid fa-circle-radiation" style="color: var(--color-red-400);"></i> <span data-i18n="afterItem1">Check your home for gas leaks, broken pipes, and electrical hazards.</span></li>
+              <li><i class="fa-solid fa-person-walking-arrow-right" style="color: var(--color-red-400);"></i> <span data-i18n="afterItem2">Evacuate calmly to designated open-air emergency relief shelters.</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Emergency Kit Interactive Checklist -->
+        <div class="glass-card" style="margin-top: 1.5rem;">
+          <h3 style="font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-suitcase-medical"></i> <span data-i18n="kitTitle">72-Hour Emergency Kit Checklist</span></h3>
+          <div class="grid-4" id="kit-checklist-container">
+            <!-- Dynamically Rendered Checklist -->
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 10: COMMUNITY REPORTS -->
+      <div id="page-community" class="page-view">
+        <div class="grid-2">
+          <!-- Submit Incident Report Form -->
+          <div class="glass-card">
+            <h2 style="font-weight: 800; margin-bottom: 1rem;"><i class="fa-solid fa-bullhorn" style="color: var(--color-orange-400);"></i> <span data-i18n="reportHeading">Report an Emergency</span></h2>
+            <form onsubmit="communityReports.submitReport(event)">
+              <div class="form-group">
+                <label data-i18n="incTypeLabel">What Happened?</label>
+                <select class="form-control" id="rep-type" required>
+                  <option value="Building Collapse">Building Collapse</option>
+                  <option value="Road Blockage">Road Blockage</option>
+                  <option value="Injured Civilians">Injured People</option>
+                  <option value="Gas / Fire Hazard">Gas / Fire</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label data-i18n="incSeverityLabel">How Urgent?</label>
+                <select class="form-control" id="rep-severity" required>
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Moderate">Moderate</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label data-i18n="incDescLabel">Location & Details</label>
+                <textarea class="form-control" id="rep-desc" rows="3" placeholder="Where are you? What do you see?" data-i18n-placeholder="incDescPlaceholder" required></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-danger" style="width: 100%;">
+                <span data-i18n="broadcastReportBtn">Submit Report</span> <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </form>
+          </div>
+
+          <!-- Live Feed of Crowdsourced Reports -->
+          <div class="glass-card">
+            <h2 style="font-weight: 800; margin-bottom: 1rem;"><i class="fa-solid fa-rss"></i> <span data-i18n="liveFeedTitle">Community Reports</span></h2>
+            <div id="community-feed-list" style="display: flex; flex-direction: column; gap: 1rem; max-height: 480px; overflow-y: auto;">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 11: VOLUNTEER MODULE -->
+      <div id="page-volunteers" class="page-view">
+        <div class="glass-card" style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h2 style="font-weight: 800;"><i class="fa-solid fa-hand-holding-hand" style="color: var(--color-teal-400);"></i> <span data-i18n="volunteerHeading">Volunteer Rescue Network</span></h2>
+              <p style="color: var(--text-secondary); font-size: 0.9rem;" data-i18n="volunteerSub">Accept nearby missions, help with medical aid, and support rescue teams.</p>
+            </div>
+            <button class="btn btn-primary" onclick="volunteerModule.openRegisterModal()"><i class="fa-solid fa-user-plus"></i> <span data-i18n="regVolunteerBtn">Register as Volunteer</span></button>
+          </div>
+          <div id="volunteer-status-box"></div>
+        </div>
+
+        <div class="glass-card">
+          <h3 style="font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-crosshairs"></i> <span data-i18n="nearbyMissionsTitle">Nearby Missions</span></h3>
+          <div class="grid-2" id="volunteer-missions-list">
+            <!-- Dynamically Populated Missions -->
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 12: ADMIN RESCUE COMMAND -->
+      <div id="page-admin" class="page-view">
+        <!-- Header & View Mode Switcher -->
+        <div class="glass-card" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h2 style="font-weight: 800; margin-bottom: 0.25rem;">
+              <i class="fa-solid fa-layer-group" style="color: var(--color-teal-400);"></i> <span data-i18n="sensorsCommandHeading">Control Center</span>
+            </h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;" data-i18n="sensorsCommandSub">Sensors that detect survivors, quick emergency controls, and safety announcements.</p>
+          </div>
+
+          <!-- View Mode Switcher: Easy View vs Advanced View -->
+          <div style="display: flex; gap: 0.5rem; background: var(--bg-surface); padding: 0.35rem; border-radius: 12px; border: 1px solid var(--border-color);">
+            <button id="cmd-view-btn-simple" class="btn btn-primary" style="padding: 0.45rem 0.9rem; font-size: 0.85rem; font-weight: 800;" onclick="rescueAdmin.setCommandViewMode('simple')">
+              <i class="fa-solid fa-face-smile"></i> <span data-i18n="easyViewBtnCmd">Easy View (For Everyone)</span>
+            </button>
+            <button id="cmd-view-btn-advanced" class="btn btn-outline" style="padding: 0.45rem 0.9rem; font-size: 0.85rem; font-weight: 800;" onclick="rescueAdmin.setCommandViewMode('advanced')">
+              <i class="fa-solid fa-sliders"></i> <span data-i18n="advTelemetryBtnCmd">Advanced View</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Plain-language honesty banner: these sensor readings are simulated, not live hardware -->
+        <div class="glass-card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(15, 23, 42, 0.7)); border: 1px solid rgba(245, 158, 11, 0.4); display: flex; align-items: center; gap: 0.85rem;">
+          <i class="fa-solid fa-flask" style="font-size: 1.4rem; color: #f59e0b; flex-shrink: 0;"></i>
+          <p style="margin: 0; font-size: 0.88rem; color: var(--text-primary); font-weight: 600;">
+            <span data-i18n="simSensorBannerTitle">Demo Mode:</span>
+            <span style="font-weight: 400;" data-i18n="simSensorBannerText">The sensor numbers on this page are made up for this demo — there's no real radar or camera hardware connected yet. Everything else in the app (earthquake data, risk score, and photo damage check) is real.</span>
+          </p>
+        </div>
+
+        <!-- 1. SIMPLE EASY VIEW (DEFAULT FOR ALL USERS) -->
+        <div id="cmd-simple-view">
+          <!-- 1-Click Simple Quick Actions Bar -->
+          <div class="glass-card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(15, 23, 42, 0.7)); border-color: rgba(20, 184, 166, 0.3);">
+            <h3 style="font-weight: 800; color: var(--color-teal-400); margin-bottom: 0.75rem;">
+              <i class="fa-solid fa-bolt"></i> <span data-i18n="quickActionsTitle">Quick Actions</span>
+            </h3>
+            <div class="grid-4">
+              <button class="btn btn-primary" style="padding: 0.85rem; font-weight: 800; text-align: center;" onclick="virtualSensorEngine.dispatchSARRescueTeamToTarget(1)">
+                <i class="fa-solid fa-truck-medical"></i> <span data-i18n="dispatchRescueBtn">Send Rescue Team</span>
+              </button>
+              <button class="btn btn-warning" style="padding: 0.85rem; font-weight: 800; text-align: center;" onclick="rescueAdmin.triggerSensorSiren()">
+                <i class="fa-solid fa-bell"></i> <span data-i18n="soundSirenBtn">Sound Alarm</span>
+              </button>
+              <button class="btn btn-outline" style="padding: 0.85rem; font-weight: 800; text-align: center;" onclick="virtualSensorEngine.triggerSimulatedSeismicPWave()">
+                <i class="fa-solid fa-wave-square"></i> <span data-i18n="testShakingBtn">Test Earthquake Alert</span>
+              </button>
+              <button class="btn btn-danger" style="padding: 0.85rem; font-weight: 800; text-align: center;" onclick="rescueAdmin.sendPresetAdvisory(1)">
+                <i class="fa-solid fa-bullhorn"></i> <span data-i18n="broadcastAlertBtn">Send Emergency Alert</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 Visual Simple Sensor Cards -->
+          <div class="grid-2" style="margin-bottom: 1.5rem;">
+            <!-- Simple Card 1: Ground Shaking Geophone -->
+            <div class="glass-card" style="border-left: 5px solid var(--color-blue-500);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h4 style="font-weight: 800; margin: 0;"><i class="fa-solid fa-earth-americas text-blue"></i> <span data-i18n="cardSeismicTitle">Ground Shaking Sensor</span></h4>
+                <span class="badge badge-success" id="simple-seismic-badge"><i class="fa-solid fa-circle-check"></i> Safe & Quiet</span>
+              </div>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                Monitors ground vibrations and earthquake waves (P-waves & S-waves) near building foundations.
+              </p>
+              <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: 10px; font-weight: 800; color: var(--color-blue-400); font-size: 1.1rem;" id="simple-seismic-status">
+                Current State: Ground is Stable (0.020g - Minor Vibrations)
+              </div>
+            </div>
+
+            <!-- Simple Card 2: Sub-Rubble Survivor Radar -->
+            <div class="glass-card" style="border-left: 5px solid var(--color-red-500);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h4 style="font-weight: 800; margin: 0;"><i class="fa-solid fa-person-shelter text-red"></i> <span data-i18n="cardVictimsTitle">Survivor Radar</span></h4>
+                <span class="badge badge-danger" id="simple-victims-badge"><i class="fa-solid fa-triangle-exclamation"></i> 2 People Found</span>
+              </div>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                Radar & bio-sonar detect chest breathing motions and heartbeat tapping through concrete walls.
+              </p>
+              <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: 10px; font-weight: 800; color: var(--color-red-400); font-size: 1.1rem;" id="simple-victims-status">
+                2 Survivors Trapped Under 2.8m Rubble (16 bpm breathing & 72 bpm heartbeat)
+              </div>
+            </div>
+
+            <!-- Simple Card 3: Thermal Body Heat Camera -->
+            <div class="glass-card" style="border-left: 5px solid var(--color-orange-500);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h4 style="font-weight: 800; margin: 0;"><i class="fa-solid fa-temperature-full text-orange"></i> <span data-i18n="cardThermalTitle">Heat Camera</span></h4>
+                <span class="badge badge-warning"><i class="fa-solid fa-bullseye"></i> Target Locked</span>
+              </div>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                FLIR thermal imaging detects body heat signatures (36.8°C) trapped beneath building rubble.
+              </p>
+              <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: 10px; font-weight: 800; color: var(--color-orange-400); font-size: 1.1rem;" id="simple-thermal-status">
+                Heat Target Confirmed: 36.8°C Human Body Temperature
+              </div>
+            </div>
+
+            <!-- Simple Card 4: Animal Early Warning -->
+            <div class="glass-card" style="border-left: 5px solid var(--color-teal-500);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h4 style="font-weight: 800; margin: 0;"><i class="fa-solid fa-crow text-teal"></i> <span data-i18n="cardAnimalTitle">Animal Early Warning</span></h4>
+                <span class="badge badge-info"><i class="fa-solid fa-shield-halved"></i> Active Monitoring</span>
+              </div>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                Tracks tagged birds, rescue dogs, and marine life detecting infrasound vibrations 30 mins before earthquake rupture.
+              </p>
+              <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: 10px; font-weight: 800; color: var(--color-teal-400); font-size: 1.1rem;">
+                Status: 3 Animal Packs Tracked (30-45 Mins Early Warning)
+              </div>
+            </div>
+          </div>
+
+          <!-- Adaptive Public Safety Advisory Broadcaster -->
+          <div class="glass-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
+              <h3 style="font-weight: 800; margin: 0;">
+                <i class="fa-solid fa-tower-broadcast" style="color: var(--color-teal-400);"></i> <span data-i18n="publicAdvisoriesTitle">Safety Announcements</span>
+              </h3>
+              <span class="badge badge-success"><i class="fa-solid fa-shield-halved"></i> Real-Time Situation Sync</span>
+            </div>
+            
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+              Automatically evaluates citizen emergency reports, sensor telemetry, and local hazard conditions to broadcast context-aware safety guidance.
+            </p>
+
+            <!-- Sleek Advisory Action Buttons -->
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+              <button class="btn btn-primary" style="padding: 0.75rem 1.25rem; font-weight: 800; font-size: 0.92rem; background: linear-gradient(135deg, #10b981, #059669); border: none;" onclick="rescueAdmin.generateAiDynamicAdvisory()">
+                <i class="fa-solid fa-paper-plane"></i> <span data-i18n="broadcastAdvisoryBtn">Send Safety Announcement</span>
+              </button>
+              <button class="btn btn-outline" style="padding: 0.75rem 1.25rem; font-weight: 800; font-size: 0.92rem;" onclick="rescueAdmin.generateAiRandomAdvisory()">
+                <i class="fa-solid fa-rotate"></i> <span data-i18n="autoGenUpdateBtn">Auto-Create Update</span>
+              </button>
+            </div>
+
+            <!-- Active Advisory Announcement Card -->
+            <div style="background: var(--bg-surface); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 1.25rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; margin-bottom: 0.35rem; display: flex; justify-content: space-between;">
+                <span>ACTIVE PUBLIC ADVISORY ANNOUNCEMENT</span>
+                <span style="color: var(--color-teal-400);"><i class="fa-solid fa-tower-cell"></i> Live Public Stream</span>
+              </div>
+              <div id="ai-advisory-preview-text" style="font-size: 0.95rem; font-weight: 700; color: var(--color-teal-400); line-height: 1.4;">
+                "PUBLIC SAFETY ADVISORY: 2 survivors located by FLIR radar near District 4. Search teams active. Rajaji Relief Hub open with 800 beds & clean water."
+              </div>
+            </div>
+
+            <!-- Quick Guidelines Selector -->
+            <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">QUICK EMERGENCY ACTION GUIDELINES:</div>
+            <div class="grid-3">
+              <button class="btn btn-outline" style="padding: 0.75rem; text-align: left; font-weight: 700; font-size: 0.82rem;" onclick="rescueAdmin.sendPresetAdvisory(1)">
+                <i class="fa-solid fa-shield-halved text-teal"></i> 1. "DROP, COVER & HOLD ON immediately under heavy desk!"
+              </button>
+              <button class="btn btn-outline" style="padding: 0.75rem; text-align: left; font-weight: 700; font-size: 0.82rem;" onclick="rescueAdmin.sendPresetAdvisory(2)">
+                <i class="fa-solid fa-person-walking-arrow-right text-orange"></i> 2. "EVACUATE damaged buildings to open ground shelters."
+              </button>
+              <button class="btn btn-outline" style="padding: 0.75rem; text-align: left; font-weight: 700; font-size: 0.82rem;" onclick="rescueAdmin.sendPresetAdvisory(3)">
+                <i class="fa-solid fa-house-medical text-blue"></i> 3. "Emergency safe shelters are OPEN with free food & water."
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. ADVANCED TECHNICAL TELEMETRY VIEW (HIDDEN BY DEFAULT, TOGGLED ON DEMAND) -->
+        <div id="cmd-advanced-view" style="display: none;">
+          <div class="grid-3" style="margin-bottom: 1.5rem;">
+            <div class="glass-card">
+              <h4>Active Victim Calls</h4>
+              <div style="font-size: 2.2rem; font-weight: 900; color: var(--color-red-400);">14 Unassigned</div>
+            </div>
+            <div class="glass-card">
+              <h4>Dispatched Teams</h4>
+              <div style="font-size: 2.2rem; font-weight: 900; color: var(--color-orange-400);">8 Response Units</div>
+            </div>
+            <div class="glass-card">
+              <h4>Shelter Occupancy</h4>
+              <div style="font-size: 2.2rem; font-weight: 900; color: var(--color-teal-400);">64% Occupied</div>
+            </div>
+          </div>
+
+          <!-- REAL-TIME VIRTUAL SENSORS TELEMETRY PANEL -->
+          <div class="glass-card" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <div>
+                <h3 style="font-weight: 800;"><i class="fa-solid fa-microchip" style="color: var(--color-teal-400);"></i> Real-Time Life-Detection & Seismic Telemetry Grid</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem;">Virtual Seismic Geophones, Sub-rubble Micro-Doppler Motion Radars & FLIR Infrared Thermal Heat Signature Matrix</p>
+              </div>
+              <button class="btn btn-warning" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="virtualSensorEngine.triggerSimulatedSeismicPWave()">
+                <i class="fa-solid fa-wave-square"></i> Simulate P-Wave Trigger
+              </button>
+            </div>
+
+            <!-- Sensor Stats Summary -->
+            <div class="grid-4" style="margin-bottom: 1.25rem;">
+              <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: 10px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">SEISMIC PGA (GEOPHONE)</div>
+                <div id="sensor-seismic-pga" style="font-size: 1.15rem; font-weight: 800; color: var(--color-blue-400);">19.6 cm/s² (0.020g)</div>
+              </div>
+              <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: 10px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">MOTION RADAR SNR</div>
+                <div id="sensor-motion-snr" style="font-size: 1.15rem; font-weight: 800; color: var(--color-teal-400);">18.4 dB (16 bpm)</div>
+              </div>
+              <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: 10px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">FLIR HEAT SIGNATURE</div>
+                <div id="sensor-thermal-temp" style="font-size: 1.15rem; font-weight: 800; color: var(--color-orange-400);">36.8 °C (Human Body)</div>
+              </div>
+              <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: 10px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">LOCATED TRAPPED SURVIVORS</div>
+                <div id="sensor-victims-count" style="font-size: 1.15rem; font-weight: 800; color: var(--color-red-400);">2 Confirmed Hidden</div>
+              </div>
+            </div>
+
+            <!-- Dual Telemetry Visualizer Canvases -->
+            <div class="grid-2">
+              <!-- Seismic P/S Waveform Canvas -->
+              <div style="background: var(--bg-surface); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                  <span style="font-weight: 700; font-size: 0.85rem;"><i class="fa-solid fa-chart-line text-blue"></i> Geophone Waveform Telemetry</span>
+                  <span class="badge badge-info" style="font-size: 0.7rem;">Node Alpha</span>
+                </div>
+                <canvas id="sensor-seismic-canvas" width="340" height="180" style="width: 100%; height: 180px; background: #0f172a; border-radius: 8px; border: 1px solid var(--border-color);"></canvas>
+              </div>
+
+              <!-- FLIR Thermal Matrix Heatmap Canvas -->
+              <div style="background: var(--bg-surface); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                  <span style="font-weight: 700; font-size: 0.85rem;"><i class="fa-solid fa-temperature-full text-orange"></i> FLIR Infrared Rubble Heat Map Matrix</span>
+                  <button class="btn btn-primary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="virtualSensorEngine.dispatchSARRescueTeamToTarget(1)">Dispatch SAR Unit</button>
+                </div>
+                <canvas id="sensor-thermal-canvas" width="340" height="180" style="width: 100%; height: 180px; background: #0f172a; border-radius: 8px; border: 1px solid var(--border-color);"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- UNCOMMON FEATURE 1: ACOUSTIC SUB-RUBBLE BIO-DEMODULATION SONAR -->
+          <div class="glass-card" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <div>
+                <h3 style="font-weight: 800;"><i class="fa-solid fa-ear-listen" style="color: var(--color-teal-400);"></i> Acoustic Sub-Rubble Bio-Demodulation & Heartbeat Sonar</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem;">FFT Audio Spectrogram isolating rhythmic S.O.S. concrete tapping and 72 bpm human heartbeat acoustics under 3.4m concrete debris.</p>
+              </div>
+              <button class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="acousticBioDemodulator.triggerAcousticLockAlert()">
+                <i class="fa-solid fa-crosshairs"></i> Target Bio-Sonar Lock
+              </button>
+            </div>
+
+            <div class="grid-2">
+              <div style="background: var(--bg-surface); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                  <span style="font-size: 0.85rem; font-weight: 700;"><i class="fa-solid fa-waveform"></i> Audio FFT Spectrogram (0.5Hz - 50Hz)</span>
+                  <span class="badge badge-success" id="acoustic-conf-score">97.6% Signal Match</span>
+                </div>
+                <canvas id="acoustic-sonar-canvas" width="340" height="170" style="width: 100%; height: 170px; background: #0b1329; border-radius: 8px; border: 1px solid var(--border-color);"></canvas>
+              </div>
+
+              <div style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 0.6rem;">
+                  <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">DETECTED ACOUSTIC PATTERN</div>
+                  <div id="acoustic-pattern-status" style="font-size: 1rem; font-weight: 800; color: var(--color-teal-400);">S.O.S. (... --- ...) Rhythmic Concrete Tapping</div>
+                </div>
+
+                <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 0.6rem;">
+                  <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">ESTIMATED VICTIM RUBBLE DEPTH</div>
+                  <div id="acoustic-depth-val" style="font-size: 1rem; font-weight: 800; color: var(--color-orange-400);">3.4 meters under concrete</div>
+                </div>
+
+                <div style="background: var(--bg-surface); padding: 0.85rem; border-radius: 10px; border: 1px solid var(--border-color);">
+                  <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">BIOMETRIC ACOUSTIC RESONANCE</div>
+                  <div id="acoustic-heartbeat-rate" style="font-size: 1rem; font-weight: 800; color: var(--color-red-400);">72 bpm (Human Heartbeat Signal)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- UNCOMMON FEATURE 2: INFRASOUND WILDLIFE SEISMIC PRECURSOR NETWORK -->
+          <div class="glass-card" style="margin-bottom: 1.5rem;">
+            <h3 style="font-weight: 800; margin-bottom: 0.5rem;"><i class="fa-solid fa-crow" style="color: var(--color-orange-400);"></i> Infrasound Wildlife Precursor Early Warning Bio-Network</h3>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">Bio-telemetry monitoring tagged birds, canines, and marine pods detecting 0.05-0.12 Hz micro-seismic infrasound 30-45 minutes before rupture.</p>
+            <div id="animal-infrasound-list"></div>
+          </div>
+
+          <div class="glass-card">
+            <h3 style="font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-bullhorn"></i> Emergency Public Advisory Broadcast</h3>
+            <div style="display: flex; gap: 1rem;">
+              <input type="text" class="form-control" id="admin-broadcast-msg" placeholder="Type official advisory message to broadcast to all active users...">
+              <button class="btn btn-danger" onclick="rescueAdmin.sendBroadcast()"><i class="fa-solid fa-tower-cell"></i> Broadcast Alert</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 13: USER PROFILE & QR VICTIM ID -->
+      <div id="page-profile" class="page-view">
+        <div class="glass-card" style="max-width: 600px; margin: 0 auto; text-align: center;">
+          <img src="assets/logo.jpg" alt="Profile Avatar" style="width: 90px; height: 90px; border-radius: 50%; margin-bottom: 1rem; border: 3px solid var(--color-blue-400);">
+          <h2 style="font-weight: 800;" data-i18n="userProfileHeader">My Profile</h2>
+          <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Registered User ID: #QG-98421-2026 | Blood Type: O+ Positive</p>
+          
+          <!-- Victim Emergency QR ID Code Generator -->
+          <div style="background: var(--bg-surface); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border-color); display: inline-block;">
+            <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;" data-i18n="medicalIdTitle">EMERGENCY MEDICAL IDENTIFICATION</div>
+            <!-- Canvas QR Mock -->
+            <div style="width: 160px; height: 160px; background: white; margin: 0 auto; padding: 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+              <i class="fa-solid fa-qrcode" style="font-size: 7rem; color: black;"></i>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;" data-i18n="scanQrNote">Responders can scan this to see your medical info</div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- FLOATING SAFETY ASSISTANT & VOICE CHATBOT -->
+    <div class="ai-assistant-drawer">
+      <button class="ai-bot-trigger" onclick="aiVoiceAssistant.toggleChatWindow()" title="Emergency Safety Assistant">
+        <i class="fa-solid fa-headset" style="font-size: 1.5rem;"></i>
+      </button>
+
+      <div class="ai-chat-window" id="ai-chat-window">
+        <div class="chat-header">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-headset"></i> <strong data-i18n="chatHeaderTitle">Safety Assistant</strong>
+            <span class="ai-status" id="ai-status" title="Shows whether the AI server is connected">Offline mode</span>
+          </div>
+          <button class="btn-icon" style="width: 28px; height: 28px;" onclick="aiVoiceAssistant.toggleChatWindow()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="chat-messages" id="ai-chat-messages">
+          <div class="chat-msg bot">
+            Hello! I am your Emergency Safety Assistant. Ask me any safety question regarding earthquake protocols, shelters, or immediate evacuation!
+          </div>
+        </div>
+
+        <div class="chat-input-row">
+          <input type="text" class="form-control" id="chat-input-text" placeholder="Type your safety question..." data-i18n-placeholder="chatInputPlaceholder" onkeypress="if(event.key==='Enter') aiVoiceAssistant.sendMessage()">
+          <button class="btn btn-primary" onclick="aiVoiceAssistant.sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+          <button class="btn btn-warning" onclick="aiVoiceAssistant.startVoiceInput()" title="Voice Input"><i class="fa-solid fa-microphone"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FULLSCREEN EMERGENCY SOS OVERLAY MODAL -->
+    <div class="sos-overlay" id="sos-modal-overlay">
+      <h1 style="font-size: 3rem; font-weight: 900; text-shadow: 0 0 20px rgba(0,0,0,0.5);"><i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="sosAlertTitle">EMERGENCY SOS SIGNAL ACTIVE</span></h1>
+      <p style="font-size: 1.2rem; max-width: 500px; margin-top: 0.5rem;" data-i18n="sosAlertSub">Choose how to get help — call emergency services or send an SOS text with your live location.</p>
+
+      <button class="sos-ring-btn" onclick="sosManager.callEmergencyNumber()">
+        <i class="fa-solid fa-phone-flip" style="font-size: 3rem; margin-bottom: 0.5rem;"></i>
+        <span data-i18n="sosDispatchBtn">CALL 112 NOW</span>
+      </button>
+      <p style="font-size: 0.85rem; opacity: 0.85; margin-top: -1rem; max-width: 380px;">
+        112 reaches emergency services in India, the EU & most countries. In the US/Canada, dial 911 instead.
+      </p>
+
+      <button id="sos-sms-btn" class="btn btn-primary" style="background: white; color: var(--color-red-600); font-weight: 800; padding: 0.85rem 1.5rem; font-size: 1rem;" onclick="sosManager.sendSmsSOS()">
+        <i class="fa-solid fa-comment-sms"></i> <span data-i18n="sendSmsSosBtn">Send SOS via SMS</span>
+      </button>
+      <p style="font-size: 0.8rem; opacity: 0.8; max-width: 380px; margin-top: -0.25rem;">
+        Opens your Messages app with your live GPS location pre-filled, ready to send — works with just a cell signal, no internet needed.
+      </p>
+
+      <div style="display: flex; gap: 1rem; align-items: center;">
+        <button class="btn btn-outline" style="border-color: white; color: white;" onclick="sosManager.stopAlarmSiren()">
+          <i class="fa-solid fa-volume-xmark"></i> <span data-i18n="muteAlarmBtn">Mute Siren</span>
+        </button>
+        <button class="btn btn-primary" style="background: white; color: var(--color-red-600); font-weight: 800;" onclick="sosManager.closeSOSModal()">
+          <i class="fa-solid fa-xmark"></i> <span data-i18n="abortEmergencyBtn">Cancel SOS</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- VOLUNTEER REGISTRATION & SIGN IN MODAL -->
+    <div class="modal-overlay" id="volunteer-modal-overlay">
+      <div class="modal-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <h2 style="font-weight: 800; font-size: 1.35rem;"><i class="fa-solid fa-user-plus" style="color: var(--color-teal-400);"></i> Volunteer Rescue Registration</h2>
+          <button class="btn-icon" style="width: 32px; height: 32px;" onclick="volunteerModule.closeRegisterModal()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Tab Controls -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; background: var(--bg-surface); padding: 0.4rem; border-radius: 12px; border: 1px solid var(--border-color);">
+          <button class="btn btn-primary" id="vol-tab-reg" style="flex: 1; padding: 0.5rem; font-size: 0.88rem;" onclick="volunteerModule.switchAuthTab('register')">Sign Up (New Volunteer)</button>
+          <button class="btn btn-outline" id="vol-tab-log" style="flex: 1; padding: 0.5rem; font-size: 0.88rem;" onclick="volunteerModule.switchAuthTab('login')">Sign In (Existing)</button>
+        </div>
+
+        <!-- Form 1: Sign Up Registration -->
+        <form id="vol-form-register" onsubmit="volunteerModule.handleRegister(event)">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" class="form-control" id="vol-reg-name" placeholder="e.g. Dr. Alex Mercer" required>
+          </div>
+
+          <div class="form-group">
+            <label>Email Address or Mobile Phone Number</label>
+            <input type="text" class="form-control" id="vol-reg-contact" placeholder="email@quakeguard.org or +1 (555) 019-2831" required>
+          </div>
+
+          <div class="form-group">
+            <label>Volunteer Specialization / Skill</label>
+            <select class="form-control" id="vol-reg-skill">
+              <option value="Medical Medic / EMT">Medical Medic / EMT First Responder</option>
+              <option value="Search & Rescue K9 Handler">Search & Rescue K9 Handler</option>
+              <option value="Debris Extrication & Heavy Equipment">Debris Extrication & Heavy Equipment</option>
+              <option value="Shelter Logistics & Food Distribution">Shelter Logistics & Food Distribution</option>
+              <option value="Ham Radio / Mesh Network Operator">Ham Radio / Mesh Network Operator</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Create Account Password</label>
+            <input type="password" class="form-control" id="vol-reg-password" placeholder="••••••••" required>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem;">
+            Complete Volunteer Sign Up <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </form>
+
+        <!-- Form 2: Sign In Existing Volunteer -->
+        <form id="vol-form-login" style="display: none;" onsubmit="volunteerModule.handleLogin(event)">
+          <div class="form-group">
+            <label>Email Address or Phone Number</label>
+            <input type="text" class="form-control" id="vol-log-contact" placeholder="email@quakeguard.org or +1 (555) 019-2831" required>
+          </div>
+
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" class="form-control" id="vol-log-password" placeholder="••••••••" required>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem;">
+            Sign In to Volunteer Dispatch <i class="fa-solid fa-right-to-bracket"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div>QuakeGuard Platform &copy; 2026 | Handcrafted Open-Source Disaster Response & Emergency Platform</div>
+    </footer>
+
+  </div>
+
+  <!-- External JavaScript Libraries (100% Free & Keyless) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- QuakeGuard Core Modules -->
+  <script src="js/multiLang.js"></script>
+  <script src="js/liveMap.js"></script>
+  <script src="js/offlineGeo.js"></script>
+  <script src="js/offlineBasemap.js"></script>
+  <script src="js/offlineMaps.js"></script>
+  <script src="js/mapLibreGlobe.js"></script>
+  <script src="js/databaseExplorer.js"></script>
+  <script src="js/familyCircle.js"></script>
+  <script src="js/pWaveEarlyWarning.js"></script>
+  <script src="js/mutualAid.js"></script>
+  <script src="js/meshNetwork.js"></script>
+  <script src="js/aiPredictor.js"></script>
+  <script src="js/faceCascade.js"></script>
+  <script src="js/faceHaar.js"></script>
+  <script src="js/aiDamageAssessor.js"></script>
+  <script src="js/offlineBrain.js"></script>
+  <script src="js/aiBackend.js"></script>
+  <script src="js/aiVoiceAssistant.js"></script>
+  <script src="js/sosManager.js"></script>
+  <script src="js/disasterPreparedness.js"></script>
+  <script src="js/communityReports.js"></script>
+  <script src="js/volunteerModule.js"></script>
+  <script src="js/virtualSensorEngine.js"></script>
+  <script src="js/acousticBioDemodulator.js"></script>
+  <script src="js/animalInfrasoundNetwork.js"></script>
+  <script src="js/a11yAssistiveEngine.js"></script>
+  <script src="js/rescueAdmin.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    aiBackend.onStatus(on => { const el = document.getElementById('ai-status'); if (el) { el.textContent = on ? 'AI online' : 'Offline mode'; el.classList.toggle('on', on); } });
+    aiBackend.start();
+  </script>
+
+</body>
+</html>

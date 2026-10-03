@@ -1,0 +1,21 @@
+{
+  "name": "quakeguard-app",
+  "version": "2.0.0",
+  "description": "QuakeGuard AI Earthquake Detection, Prediction, Emergency Response & Disaster Management Platform",
+  "main": "desktop_app.js",
+  "scripts": {
+    "start": "electron .",
+    "web": "python -m http.server 8080 --directory ."
+  },
+  "keywords": [
+    "earthquake",
+    "disaster-management",
+    "ai",
+    "emergency-response",
+    "usgs-feed",
+    "pwa",
+    "electron"
+  ],
+  "author": "Antigravity AI",
+  "license": "MIT"
+}
